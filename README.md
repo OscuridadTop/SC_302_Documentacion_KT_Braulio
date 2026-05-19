@@ -1,1 +1,1 @@
-# SC_302_Documentacion_KT_Braulio
+Esta es mi primera practica con Github
